@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .input-group {
+            display: flex;
+            justify-content: center;
+            gap: 0px;
+            margin-bottom: -18px;
+        }
+
+        .input-group1 {
+            display: flex;
+            justify-content: center;
+            gap: 0px;
+            margin-bottom: -18px;
+        }
+
+        .input-group input[type=text] {
+            width: 15%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #000000;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+
+        .input-group1 input[type=text] {
+            width: 30%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #000000;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #0000FF;
+            color: white;
+            padding: 10px 30px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            width: 30%;
+            display: block;
+            margin: 20px auto;
+        }
+
+        button:hover {
+            background-color: #0000A0;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="form-container">
+        <h2>Cadastro de Corretor</h2>
+        <form id="corretorForm" action="/submit" method="post">
+            <div class="input-group">
+                <input type="text" id="cpf" name="cpf" placeholder="Digite o seu cpf" required maxlength="11">
+                <input type="text" id="creci" name="creci" placeholder="Digite o seu Creci" required pattern="\d{2,8}">
+            </div>
+            <div class="input-group1">
+                <input type="text" id="nome" name="nome" placeholder="Digite o seu nome" required maxlength="20">
+            </div>
+            <!-- Botão de envio -->
+            <button type="submit">Enviar</button>
+        </form>
+
+        <table id="corretorTable">
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Creci</th>
+                <th>CPF</th>
+                <th>Ações</th>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Script JavaScript -->
+    <script>
+        document.getElementById('corretorForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            var cpf = document.getElementById('cpf');
+            var creci = document.getElementById('creci');
+            var nome = document.getElementById('nome');
+
+            // Verificar se o CPF já existe no banco de dados
+            var tableData = JSON.parse(localStorage.getItem('tableData')) || [];
+            var cpfExists = tableData.some(function (item) {
+                return item.cpf === cpf.value;
+            });
+
+            if (cpfExists) {
+                alert('Este CPF já está cadastrado.');
+                return;
+            }
+
+            // Verificar se o nome está na "blacklist"
+            var blacklist = ["André Nunes"];
+            if (blacklist.includes(nome.value)) {
+                alert('Este nome está na "blacklist". Cadastro bloqueado.');
+                return;
+            }
+
+            if (cpf.value.length !== 11) {
+                alert('O CPF deve ter exatamente 11 caracteres.');
+                return;
+            }
+
+            if (!/^\d{2,8}$/.test(creci.value)) {
+                alert('O Creci deve permitir apenas números e ter no mínimo 2 e no máximo 8 caracteres.');
+                return;
+            }
+
+            if (nome.value.length < 2 || nome.value.length > 20) {
+                alert('O Nome deve ter no mínimo 2 e no máximo 20 caracteres.');
+                return;
+            }
+
+            var id = Date.now();
+
+            var table = document.getElementById('corretorTable');
+            var row = table.insertRow(-1);
+
+            row.insertCell(0).innerText = id;
+            row.insertCell(1).innerText = nome.value;
+            row.insertCell(2).innerText = creci.value;
+            row.insertCell(3).innerText = cpf.value;
+
+            var actions = row.insertCell(4);
+            actions.innerHTML = '<button onclick="editRow(this)">Editar</button> <button onclick="deleteRow(this)">Excluir</button>';
+
+            var tableData = JSON.parse(localStorage.getItem('tableData')) || [];
+            tableData.push({
+                id: id,
+                nome: nome.value,
+                creci: creci.value,
+                cpf: cpf.value
+            });
+            localStorage.setItem('tableData', JSON.stringify(tableData));
+        });
+
+        function editRow(button) {
+            var row = button.parentNode.parentNode;
+            var cells = row.getElementsByTagName('td');
+
+            localStorage.setItem('id', cells[0].innerText);
+            localStorage.setItem('cpf', cells[3].innerText);
+            localStorage.setItem('creci', cells[2].innerText);
+            localStorage.setItem('nome', cells[1].innerText);
+
+            window.location.href = 'editordocorretor.html';
+        }
+
+        function deleteRow(button) {
+            var row = button.parentNode.parentNode;
+            var id = row.cells[0].innerText;
+
+            row.parentNode.removeChild(row);
+
+            var tableData = JSON.parse(localStorage.getItem('tableData')) || [];
+            tableData = tableData.filter(function (item) {
+                return item.id !== id;
+            });
+            localStorage.setItem('tableData', JSON.stringify(tableData));
+        }
+
+        window.onload = function () {
+            var tableData = JSON.parse(localStorage.getItem('tableData')) || [];
+            var table = document.getElementById('corretorTable');
+
+            for (var i = 0; i < tableData.length; i++) {
+                var row = table.insertRow(-1);
+
+                row.insertCell(0).innerText = tableData[i].id;
+                row.insertCell(1).innerText = tableData[i].nome;
+                row.insertCell(2).innerText = tableData[i].creci;
+                row.insertCell(3).innerText = tableData[i].cpf;
+
+                var actions = row.insertCell(4);
+                actions.innerHTML = '<button onclick="editRow(this)">Editar</button> <button onclick="deleteRow(this)">Excluir</button>';
+            }
+        }
+    </script>
+</body>
+
+</html>
